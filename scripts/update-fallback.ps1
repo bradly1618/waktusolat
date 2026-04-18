@@ -64,6 +64,37 @@ function Invoke-JakimRequest {
   }
 }
 
+function Test-JakimConnectivity {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$Month
+  )
+
+  $probeZone = "WLY01"
+  $probeUrl = "https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat&zone=$probeZone&period=month"
+
+  try {
+    $null = Invoke-RestMethod -Uri $probeUrl -Method Get -TimeoutSec 20 -Headers @{
+      "Accept" = "application/json"
+      "User-Agent" = "WaktuSolatCacheBot/1.0 (GitHub Actions probe)"
+    }
+    Write-Host "JAKIM connectivity probe succeeded for $Month."
+    return $true
+  } catch {
+    Write-Warning "JAKIM connectivity probe failed for $Month. $($_.Exception.Message)"
+    return $false
+  }
+}
+
+if (-not (Test-JakimConnectivity -Month $Month)) {
+  if ($existing -and $existing.zones) {
+    Write-Warning "Skipping refresh for $Month because JAKIM is unreachable from this runner. Keeping the existing cached file."
+    exit 0
+  }
+
+  throw "JAKIM is unreachable for $Month, and no existing cache file is available."
+}
+
 foreach ($zone in $zoneCodes) {
   $url = "https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat&zone=$zone&period=month"
   try {

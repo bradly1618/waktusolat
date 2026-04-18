@@ -91,8 +91,6 @@ const REFRESH_BUTTON = document.querySelector("#refresh-button");
 
 let activeZone = "";
 let lastPlace = "";
-let lastDataSource = "cache";
-
 init();
 
 function init() {
@@ -305,21 +303,14 @@ async function fetchPrayerTimes(zoneCode) {
 
   try {
     const { payload, today, source, generatedAt } = await loadPrayerTimes(zoneCode);
-    lastDataSource = source;
     renderPrayerTimes(today);
-    META_OUTPUT.textContent = `${payload.zone} | ${today.day}, ${today.date} | Source: ${source === "live" ? "JAKIM live" : "cached monthly data"}`;
-    UPDATED_OUTPUT.textContent =
-      source === "live"
-        ? "Last updated: live from JAKIM"
-        : `Last updated: ${formatGeneratedAt(generatedAt)}`;
-    SOURCE_OUTPUT.textContent =
-      source === "live"
-        ? "Showing live prayer times from JAKIM."
-        : "Live JAKIM is unavailable here, so this view is using the bundled monthly cache.";
+    META_OUTPUT.textContent = `${payload.zone} | ${today.day}, ${today.date} | Source: cached prayer data`;
+    UPDATED_OUTPUT.textContent = `Last updated: ${formatGeneratedAt(generatedAt)}`;
+    SOURCE_OUTPUT.textContent = "Showing bundled cached prayer times for fast loading.";
     const zone = ZONES.find((entry) => entry.code === zoneCode);
     setNotice(
       zone
-        ? `Showing today's prayer times for ${zone.label}${lastPlace ? ` near ${lastPlace}` : ""}.${source === "cache" ? " You can still deploy functions later for live fetches." : ""}`
+        ? `Showing today's prayer times for ${zone.label}${lastPlace ? ` near ${lastPlace}` : ""}.`
         : "Prayer times updated.",
     );
   } catch (error) {
@@ -333,34 +324,13 @@ async function fetchPrayerTimes(zoneCode) {
 }
 
 async function loadPrayerTimes(zoneCode) {
-  const liveError = await tryLivePrayerTimes(zoneCode);
   const cachedResult = await tryCachedPrayerTimes(zoneCode);
 
   if (cachedResult) {
     return cachedResult;
   }
 
-  throw liveError || new Error("Unable to load prayer times from live JAKIM or cached data.");
-}
-
-async function tryLivePrayerTimes(zoneCode) {
-  try {
-    const response = await fetch(`/.netlify/functions/jakim?zone=${zoneCode}`);
-    if (!response.ok) {
-      throw new Error("Failed to load prayer times from JAKIM.");
-    }
-
-    const payload = await response.json();
-    const today = payload.prayerTime?.[0];
-
-    if (!today) {
-      throw new Error("JAKIM returned no prayer times.");
-    }
-
-    return { payload, today, source: "live" };
-  } catch (error) {
-    return error;
-  }
+  throw new Error("Unable to load cached prayer times for the selected zone.");
 }
 
 async function tryCachedPrayerTimes(zoneCode) {

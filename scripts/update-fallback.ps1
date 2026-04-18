@@ -23,6 +23,17 @@ $result = @{
   zones = @{}
 }
 
+$outputPath = Join-Path $outputDir "$Month.json"
+$existing = $null
+
+if (Test-Path $outputPath) {
+  try {
+    $existing = Get-Content -Raw $outputPath | ConvertFrom-Json -Depth 8
+  } catch {
+    Write-Warning "Existing cache file for $Month could not be parsed. A fresh file will be attempted."
+  }
+}
+
 function Invoke-JakimRequest {
   param(
     [Parameter(Mandatory = $true)]
@@ -67,9 +78,21 @@ foreach ($zone in $zoneCodes) {
 }
 
 if ($result.zones.Count -eq 0) {
-  throw "Unable to refresh any JAKIM zones for $Month."
+  if ($existing -and $existing.zones) {
+    Write-Warning "Unable to refresh any JAKIM zones for $Month. Keeping the existing cached file."
+    exit 0
+  }
+
+  throw "Unable to refresh any JAKIM zones for $Month, and no existing cache file is available."
 }
 
-$outputPath = Join-Path $outputDir "$Month.json"
+if ($existing -and $existing.zones) {
+  foreach ($property in $existing.zones.PSObject.Properties) {
+    if (-not $result.zones.ContainsKey($property.Name)) {
+      $result.zones[$property.Name] = $property.Value
+    }
+  }
+}
+
 $result | ConvertTo-Json -Depth 8 | Set-Content -Path $outputPath -Encoding UTF8
 Write-Host "Saved fallback data to $outputPath with $($result.zones.Count) zones."

@@ -82,6 +82,7 @@ const NOTICE = document.querySelector("#notice");
 const PLACE_OUTPUT = document.querySelector("#place-output");
 const ZONE_OUTPUT = document.querySelector("#zone-output");
 const META_OUTPUT = document.querySelector("#meta-output");
+const SOURCE_OUTPUT = document.querySelector("#source-output");
 const PRAYER_GRID = document.querySelector("#prayer-grid");
 const CARD_TEMPLATE = document.querySelector("#prayer-card-template");
 const DETECT_BUTTON = document.querySelector("#detect-button");
@@ -89,6 +90,7 @@ const REFRESH_BUTTON = document.querySelector("#refresh-button");
 
 let activeZone = "";
 let lastPlace = "";
+let lastDataSource = "cache";
 
 init();
 
@@ -96,6 +98,7 @@ function init() {
   populateZoneOptions();
   const savedZone = localStorage.getItem("jakim-zone") || "WLY01";
   ZONE_SELECT.value = savedZone;
+  PLACE_OUTPUT.textContent = "Manual selection / last saved zone";
   setZone(savedZone, "Manual zone selected.");
 
   ZONE_SELECT.addEventListener("change", () => {
@@ -139,7 +142,7 @@ function setZone(zoneCode, message) {
 
 async function detectLocation() {
   if (!navigator.geolocation) {
-    setNotice("This browser does not support geolocation.", true);
+    setNotice("This browser does not support geolocation. Please use the manual zone list.", true);
     return;
   }
 
@@ -171,7 +174,7 @@ async function detectLocation() {
     },
     (error) => {
       const reason = error.code === 1 ? "Location permission was denied." : "Unable to get your coordinates.";
-      setNotice(`${reason} Please choose a zone manually.`, true);
+      setNotice(`${reason} Please choose a zone manually or keep using your saved zone.`, true);
     },
     {
       enableHighAccuracy: true,
@@ -190,7 +193,7 @@ async function reverseGeocode(latitude, longitude) {
 
   const response = await fetch(`/.netlify/functions/reverse-geocode?lat=${latitude}&lon=${longitude}`);
   if (!response.ok) {
-    throw new Error("Reverse geocoding failed.");
+    throw new Error("Reverse geocoding failed. Please choose your zone manually.");
   }
 
   const data = await response.json();
@@ -300,6 +303,42 @@ async function fetchPrayerTimes(zoneCode) {
   setNotice("Loading prayer times...");
 
   try {
+    const { payload, today, source } = await loadPrayerTimes(zoneCode);
+    lastDataSource = source;
+    renderPrayerTimes(today);
+    META_OUTPUT.textContent = `${payload.zone} | ${today.day}, ${today.date} | Source: ${source === "live" ? "JAKIM live" : "cached monthly data"}`;
+    SOURCE_OUTPUT.textContent =
+      source === "live"
+        ? "Showing live prayer times from JAKIM."
+        : "Live JAKIM is unavailable here, so this view is using the bundled monthly cache.";
+    const zone = ZONES.find((entry) => entry.code === zoneCode);
+    setNotice(
+      zone
+        ? `Showing today's prayer times for ${zone.label}${lastPlace ? ` near ${lastPlace}` : ""}.${source === "cache" ? " You can still deploy functions later for live fetches." : ""}`
+        : "Prayer times updated.",
+    );
+  } catch (error) {
+    console.error(error);
+    META_OUTPUT.textContent = "Unable to load prayer times.";
+    SOURCE_OUTPUT.textContent = "No live or cached prayer-time data is available for the selected zone.";
+    PRAYER_GRID.innerHTML = "";
+    setNotice(error.message || "Prayer time request failed.", true);
+  }
+}
+
+async function loadPrayerTimes(zoneCode) {
+  const liveError = await tryLivePrayerTimes(zoneCode);
+  const cachedResult = await tryCachedPrayerTimes(zoneCode);
+
+  if (cachedResult) {
+    return cachedResult;
+  }
+
+  throw liveError || new Error("Unable to load prayer times from live JAKIM or cached data.");
+}
+
+async function tryLivePrayerTimes(zoneCode) {
+  try {
     const response = await fetch(`/.netlify/functions/jakim?zone=${zoneCode}`);
     if (!response.ok) {
       throw new Error("Failed to load prayer times from JAKIM.");
@@ -312,20 +351,42 @@ async function fetchPrayerTimes(zoneCode) {
       throw new Error("JAKIM returned no prayer times.");
     }
 
-    renderPrayerTimes(today);
-    META_OUTPUT.textContent = `${payload.zone} | ${today.day}, ${today.date} | Source: JAKIM`;
+    return { payload, today, source: "live" };
+  } catch (error) {
+    return error;
+  }
+}
 
-    const zone = ZONES.find((entry) => entry.code === zoneCode);
-    setNotice(
-      zone
-        ? `Showing today's prayer times for ${zone.label}${lastPlace ? ` near ${lastPlace}` : ""}.`
-        : "Prayer times updated.",
-    );
+async function tryCachedPrayerTimes(zoneCode) {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  try {
+    const response = await fetch(`./data/fallback/${monthKey}.json`);
+    if (!response.ok) {
+      throw new Error("Cached monthly file is unavailable.");
+    }
+
+    const payload = await response.json();
+    const zonePayload = payload.zones?.[zoneCode];
+    const todayKey = formatDateKey(now);
+    const today = zonePayload?.prayerTime?.find((entry) => entry.date === todayKey);
+
+    if (!zonePayload || !today) {
+      throw new Error("Cached prayer times do not include the selected zone/date.");
+    }
+
+    return {
+      payload: {
+        zone: zoneCode,
+        prayerTime: zonePayload.prayerTime,
+      },
+      today,
+      source: "cache",
+    };
   } catch (error) {
     console.error(error);
-    META_OUTPUT.textContent = "Unable to load prayer times.";
-    PRAYER_GRID.innerHTML = "";
-    setNotice(error.message || "Prayer time request failed.", true);
+    return null;
   }
 }
 
@@ -346,4 +407,12 @@ function formatTime(value) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function formatDateKey(date) {
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = monthNames[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
 }

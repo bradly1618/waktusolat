@@ -247,6 +247,12 @@ select {
   font-weight: 600;
 }
 
+.source-note {
+  margin: -0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
 @media (max-width: 860px) {
   .status-grid,
   .prayer-grid,

@@ -48,6 +48,7 @@ function Invoke-JakimRequest {
   for ($attempt = 1; $attempt -le $attempts; $attempt++) {
     try {
       Write-Host "Fetching $Zone (attempt $attempt/$attempts)"
+      Write-Host "URL: $Url"
       return Invoke-RestMethod -Uri $Url -Method Get -TimeoutSec 45 -Headers @{
         "Accept" = "application/json"
         "User-Agent" = "WaktuSolatCacheBot/1.0 (GitHub Actions)"
@@ -74,6 +75,7 @@ function Test-JakimConnectivity {
   $probeUrl = "https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat&zone=$probeZone&period=month"
 
   try {
+    Write-Host "Probe URL: $probeUrl"
     $null = Invoke-RestMethod -Uri $probeUrl -Method Get -TimeoutSec 20 -Headers @{
       "Accept" = "application/json"
       "User-Agent" = "WaktuSolatCacheBot/1.0 (GitHub Actions probe)"

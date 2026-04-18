@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Waktu Solat Malaysia</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">JAKIM e-Solat</p>
+        <h1>Responsive waktu solat by your location.</h1>
+        <p class="lede">
+          Detect your location, map it to the correct JAKIM zone, and show today's
+          prayer times in a clean mobile-friendly layout.
+        </p>
+      </section>
+
+      <section class="panel controls">
+        <div class="panel-head">
+          <h2>Find My Zone</h2>
+          <p>
+            GPS first, local zone mapping second, manual fallback always available.
+          </p>
+        </div>
+
+        <div class="actions">
+          <button id="detect-button" class="button button-primary" type="button">
+            Use My Location
+          </button>
+          <button id="refresh-button" class="button button-secondary" type="button">
+            Refresh Times
+          </button>
+        </div>
+
+        <div class="status-grid">
+          <article class="status-card">
+            <span class="status-label">Detected place</span>
+            <strong id="place-output">Waiting for location</strong>
+          </article>
+          <article class="status-card">
+            <span class="status-label">Mapped JAKIM zone</span>
+            <strong id="zone-output">Not selected</strong>
+          </article>
+        </div>
+
+        <label class="field">
+          <span>Manual zone selection</span>
+          <select id="zone-select" aria-label="Select JAKIM zone"></select>
+        </label>
+
+        <p id="notice" class="notice" aria-live="polite">
+          Choose a zone manually or allow location access to detect it automatically.
+        </p>
+      </section>
+
+      <section class="panel prayer-panel">
+        <div class="panel-head">
+          <h2>Today's Prayer Times</h2>
+          <p id="meta-output">No data loaded yet.</p>
+        </div>
+
+        <div id="prayer-grid" class="prayer-grid"></div>
+      </section>
+
+      <section class="panel zone-guide">
+        <div class="panel-head">
+          <h2>Malaysia Zone Guide</h2>
+          <p>
+            Auto-detect uses your coordinates and nearby district names. If the place is
+            ambiguous, use the guide below and choose the exact JAKIM zone manually.
+          </p>
+        </div>
+
+        <div class="guide-grid">
+          <article class="guide-card">
+            <h3>Wilayah Persekutuan</h3>
+            <p><strong>WLY01</strong> Kuala Lumpur, Putrajaya</p>
+            <p><strong>WLY02</strong> Labuan</p>
+          </article>
+
+          <article class="guide-card">
+            <h3>Selangor</h3>
+            <p><strong>SGR01</strong> Gombak, Petaling, Sepang, Hulu Langat, Hulu Selangor, Shah Alam</p>
+            <p><strong>SGR02</strong> Kuala Selangor, Sabak Bernam</p>
+            <p><strong>SGR03</strong> Klang, Kuala Langat</p>
+          </article>
+
+          <article class="guide-card">
+            <h3>Johor</h3>
+            <p><strong>JHR02</strong> Johor Bahru, Kota Tinggi, Mersing</p>
+            <p><strong>JHR03</strong> Kluang, Pontian</p>
+            <p><strong>JHR04</strong> Batu Pahat, Muar, Segamat, Gemas Johor</p>
+          </article>
+
+          <article class="guide-card">
+            <h3>Penang, Melaka, Perlis</h3>
+            <p><strong>PNG01</strong> Pulau Pinang</p>
+            <p><strong>MLK01</strong> Melaka</p>
+            <p><strong>PLS01</strong> Perlis</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <template id="prayer-card-template">
+      <article class="prayer-card">
+        <span class="prayer-name"></span>
+        <strong class="prayer-time"></strong>
+      </article>
+    </template>
+
+    <script type="module" src="./script.js"></script>
+  </body>
+</html>

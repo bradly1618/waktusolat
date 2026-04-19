@@ -151,6 +151,7 @@ const ZONE_OUTPUT = document.querySelector("#zone-output");
 const META_OUTPUT = document.querySelector("#meta-output");
 const UPDATED_OUTPUT = document.querySelector("#updated-output");
 const SOURCE_OUTPUT = document.querySelector("#source-output");
+const PRAYER_PANEL = document.querySelector(".prayer-panel");
 const PRAYER_GRID = document.querySelector("#prayer-grid");
 const CARD_TEMPLATE = document.querySelector("#prayer-card-template");
 const DETECT_BUTTON = document.querySelector("#detect-button");
@@ -289,15 +290,16 @@ function renderZoneList() {
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", zone.code === activeZone ? "true" : "false");
     button.innerHTML = `<strong>${zone.code} - ${zone.state}</strong><span>${zone.label}</span>`;
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       ZONE_SELECT.value = zone.code;
       setSelectionMode("manual");
       setZone(zone.code, "Manual zone selected.");
       renderZoneList();
-      fetchPrayerTimes(zone.code);
+      await fetchPrayerTimes(zone.code);
       if (isMobileLayout) {
         setManualPickerCollapsed(true);
       }
+      scrollToPrayerTimes();
     });
     if (meta?.flag) {
       button.insertAdjacentHTML("afterbegin", renderFlag(meta.flag, `${zone.state} flag`));
@@ -554,6 +556,13 @@ async function fetchPrayerTimes(zoneCode) {
     PRAYER_GRID.innerHTML = "";
     setNotice(error.message || "Prayer time request failed.", true);
   }
+}
+
+function scrollToPrayerTimes() {
+  PRAYER_PANEL?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
 }
 
 async function loadPrayerTimes(zoneCode) {

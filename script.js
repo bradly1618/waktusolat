@@ -459,9 +459,10 @@ async function fetchPrayerTimes(zoneCode) {
     SOURCE_OUTPUT.textContent = "Showing bundled cached prayer times for fast loading.";
     const zone = ZONES.find((entry) => entry.code === zoneCode);
     const placeSuffix = selectionMode === "auto" && lastPlace ? ` near ${lastPlace}` : "";
+    const zoneLabel = zone ? `${zone.label}${selectionMode === "manual" ? ` - ${zone.state}` : ""}` : "";
     setNotice(
       zone
-        ? `Showing today's prayer times for ${zone.label}${placeSuffix}.`
+        ? `Showing today's prayer times for ${zoneLabel}${placeSuffix}.`
         : "Prayer times updated.",
     );
   } catch (error) {

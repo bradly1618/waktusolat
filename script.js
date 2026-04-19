@@ -156,18 +156,21 @@ let activeZone = "";
 let lastPlace = "";
 let activeStateFilter = "All";
 let searchQuery = "";
+let selectionMode = "manual";
 init();
 
 function init() {
   populateZoneOptions();
   renderStateFilters();
   const savedZone = localStorage.getItem("jakim-zone") || "WLY01";
+  selectionMode = localStorage.getItem("selection-mode") || "manual";
   ZONE_SELECT.value = savedZone;
   PLACE_OUTPUT.textContent = "Manual selection / last saved zone";
   setZone(savedZone, "Manual zone selected.");
   renderZoneList();
 
   ZONE_SELECT.addEventListener("change", () => {
+    setSelectionMode("manual");
     setZone(ZONE_SELECT.value, "Manual zone selected.");
     fetchPrayerTimes(ZONE_SELECT.value);
   });
@@ -242,6 +245,7 @@ function renderZoneList() {
     button.innerHTML = `<strong>${zone.code} - ${zone.state}</strong><span>${zone.label}</span>`;
     button.addEventListener("click", () => {
       ZONE_SELECT.value = zone.code;
+      setSelectionMode("manual");
       setZone(zone.code, "Manual zone selected.");
       renderZoneList();
       fetchPrayerTimes(zone.code);
@@ -274,6 +278,11 @@ function setZone(zoneCode, message) {
   }
 }
 
+function setSelectionMode(mode) {
+  selectionMode = mode;
+  localStorage.setItem("selection-mode", mode);
+}
+
 function renderFlag(src, alt, isLarge = false) {
   if (!src) return "";
   return `<img class="flag-badge${isLarge ? " flag-large" : ""}" src="${src}" alt="${alt}" loading="lazy" decoding="async">`;
@@ -301,6 +310,7 @@ async function detectLocation() {
         }
 
         ZONE_SELECT.value = resolvedZone.code;
+        setSelectionMode("auto");
         setZone(
           resolvedZone.code,
           `Detected ${resolvedZone.code} from nearby location data. You can still change it manually if needed.`,
@@ -448,9 +458,10 @@ async function fetchPrayerTimes(zoneCode) {
     UPDATED_OUTPUT.textContent = `Last updated: ${formatGeneratedAt(generatedAt)}`;
     SOURCE_OUTPUT.textContent = "Showing bundled cached prayer times for fast loading.";
     const zone = ZONES.find((entry) => entry.code === zoneCode);
+    const placeSuffix = selectionMode === "auto" && lastPlace ? ` near ${lastPlace}` : "";
     setNotice(
       zone
-        ? `Showing today's prayer times for ${zone.label}${lastPlace ? ` near ${lastPlace}` : ""}.`
+        ? `Showing today's prayer times for ${zone.label}${placeSuffix}.`
         : "Prayer times updated.",
     );
   } catch (error) {
